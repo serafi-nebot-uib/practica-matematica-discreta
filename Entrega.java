@@ -64,6 +64,11 @@ class Entrega {
    * l'univers és suficientment petit com per poder provar tots els casos que faci falta).
    */
   static class Tema1 {
+    static int pow(int base, int exp) {
+      int r = 1;
+      for (int i = 0; i < exp; i++) r *= base;
+      return r;
+    }
     /*
      * Donat n > 1, en quants de casos (segons els valors de veritat de les proposicions p1,...,pn)
      * la proposició (...((p1 -> p2) -> p3) -> ...) -> pn és certa?
@@ -71,28 +76,82 @@ class Entrega {
      * Vegeu el mètode Tema1.tests() per exemples.
      */
     static int exercici1(int n) {
-      return 0; // TODO
+      int prev = 1;
+      for (int i = 2; i <= n; i++) {
+        int tmp = (pow(2, i - 1) - prev) * 2;
+        prev = tmp + (pow(2, i) - tmp) / 2;
+      }
+      return prev;
     }
 
     /*
      * És cert que ∀x : P(x) -> ∃!y : Q(x,y) ?
      */
     static boolean exercici2(int[] universe, Predicate<Integer> p, BiPredicate<Integer, Integer> q) {
-      return false; // TODO
+      for (int x : universe) {
+        // if P(x) is false the implication is true, therefore we can skip the rest of the implication
+        if (!p.test(x)) continue;
+        boolean unique = false;
+        for (int y : universe) {
+          if (q.test(x, y)) {
+            // if Q(x, y) is true and we have already found a different element for which it is also true
+            // the conclusion of the implication is false and because we have already checked that the predicate is true
+            // the whole implication fails and there's no need to check for any more cases
+            if (unique) return false;
+            unique = true;
+          }
+        }
+        // no element y was found for which the implication was true, the whole predicate fails
+        if (!unique) return false;
+      }
+      return true;
     }
 
     /*
      * És cert que ∃x : ∀y : Q(x, y) -> P(x) ?
      */
     static boolean exercici3(int[] universe, Predicate<Integer> p, BiPredicate<Integer, Integer> q) {
-      return false; // TODO
+      for (int x : universe) {
+        boolean yvalid = true;
+        for (int y : universe) {
+          // if a single y fails the implication, the predicate ∀y : Q(x, y) -> P(x) is false for the current x
+          // skip the remaining elements in the universe and check for another x
+          if (q.test(x, y) && !p.test(x)) { // !(Q -> P) = !(!Q ∨ P) = !!Q ∨ !P = Q ∨ !P
+            yvalid = false;
+            break;
+          }
+        }
+        // all elements y have passed the predicate ∀y : Q(x, y) -> P(x) for the current x
+        // which means the whole predicate is true
+        if (yvalid) return true;
+      }
+      // no element x has passed the whole predicate
+      return false;
     }
 
     /*
      * És cert que ∃x : ∃!y : ∀z : P(x,z) <-> Q(y,z) ?
      */
     static boolean exercici4(int[] universe, BiPredicate<Integer, Integer> p, BiPredicate<Integer, Integer> q) {
-      return false; // TODO
+      for (int x : universe) {
+        boolean unique = false;
+        for (int y : universe) {
+          boolean zvalid = true;
+          for (int z : universe) {
+            // !(P <-> Q) = !((P ∧ Q) ∨ (!P ∧ !Q)) = !(P ∧ Q) ∧ !(!P ∧ !Q) = (!P ∨ !Q) ∧ (P ∨ Q)
+            boolean pval = p.test(x, z);
+            boolean qval = q.test(y, z);
+            if ((!pval || !qval) && (pval || qval)) {
+              zvalid = false;
+              break;
+            }
+          }
+          if (zvalid)
+            if (!(unique = !unique)) break;
+        }
+        if (unique) return true;
+      }
+      return false;
     }
 
     /*
@@ -197,13 +256,95 @@ class Entrega {
    * f a x, és a dir, "f(x)" on x és d'A i el resultat f.apply(x) és de B, s'escriu f.apply(x).
    */
   static class Tema2 {
+    static int min(int a, int b) {
+      return a < b ? a : b;
+    }
+
+    static int max(int a, int b) {
+      return a > b ? a : b;
+    }
+
+    static boolean isElementOf(int e, int[] u) {
+      for (int j : u) if (j == e) return true;
+      return false;
+    }
+
+    static boolean isEqual(int[] e, int[] u) {
+      if (e.length != u.length) return false;
+      for (int i = 0; i < e.length; i++) if (e[i] != u[i]) return false;
+      return true;
+    }
+
+    static boolean isElementOf(int[] e, int[][] u) {
+      for (int[] x : u) if (isEqual(e, x)) return true;
+     return false;
+    }
+
+    static int[] union(int[] a, int[] b) {
+      int[] m = minus(b, a);
+      int[] dst = new int[a.length + m.length];
+      int i = 0;
+      for (int x : a) dst[i++] = x;
+      for (int x : m) dst[i++] = x;
+      return dst;
+    }
+
+    static int[] intersection(int[] a, int[] b) {
+      int[] dst = new int[min(a.length, b.length)]; // create destination array with theoretical maximum number of elements
+      int i = 0; // destination array index
+      for (int x : a) if (isElementOf(x, b)) dst[i++] = x; // copy elements of a which also are in b
+      if (dst.length == i) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[] tmp = new int[i];
+      for (int j = 0; j < i; j++) tmp[j] = dst[j];
+      return tmp;
+    }
+
+    static int[][] dot(int[] a, int[] b) {
+      int[][] dst = new int[a.length * b.length][2]; // create destination array with theoretical maximum number of elements
+      int i = 0; // destination array index
+      {
+        int[] tmp = new int[2];
+        for (int x : a) {
+          for (int y : b) {
+            tmp[0] = x;
+            tmp[1] = y;
+            if (!isElementOf(tmp, dst)) dst[i++] = tmp.clone();
+            else System.out.println(Arrays.toString(tmp));
+          }
+        }
+      }
+      if (dst.length == i) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[][] tmp = new int[i][2];
+      for (int j = 0; j < i; j++) tmp[j] = dst[j];
+      return tmp;
+    }
+
+    static int[] minus(int[] a, int[] b) {
+      int[] dst = new int[a.length]; // create destination array with theoretical maximum number of elements
+      int i = 0;
+      for (int x : a) if (!isElementOf(x, b)) dst[i++] = x; // copy elements of b which are not in dst
+      if (dst.length == i) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[] tmp = new int[i];
+      for (int j = 0; j < i; j++) tmp[j] = dst[j];
+      return tmp;
+    }
+
+    static int pow(int base, int exp) {
+      int r = 1;
+      for (int i = 0; i < exp; i++) r *= base;
+      return r;
+    }
+
     /*
      * Calculau el nombre d'elements del conjunt de parts de (a u b) × (a \ c)
      *
      * Podeu soposar que `a`, `b` i `c` estan ordenats de menor a major.
      */
     static int exercici1(int[] a, int[] b, int[] c) {
-      return -1; // TODO
+      return dot(union(a, b), minus(a, c)).length;
     }
 
     /*
