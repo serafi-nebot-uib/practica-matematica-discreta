@@ -264,9 +264,13 @@ class Entrega {
       return a > b ? a : b;
     }
 
-    static boolean isElementOf(int e, int[] u) {
-      for (int j : u) if (j == e) return true;
+    static boolean isElementOf(int e, int[] u, int size) {
+      for (int i = 0; i < size; i++) if (e == u[i]) return true;
       return false;
+    }
+
+    static boolean isElementOf(int e, int[] u) {
+      return isElementOf(e, u, u.length);
     }
 
     static boolean isEqual(int[] e, int[] u) {
@@ -275,9 +279,13 @@ class Entrega {
       return true;
     }
 
-    static boolean isElementOf(int[] e, int[][] u) {
-      for (int[] x : u) if (isEqual(e, x)) return true;
+    static boolean isElementOf(int[] e, int[][] u, int size) {
+      for (int i = 0; i < size; i++) if (isEqual(e, u[i])) return true;
      return false;
+    }
+
+    static boolean isElementOf(int[] e, int[][] u) {
+      return isElementOf(e, u, u.length);
     }
 
     static int[] union(int[] a, int[] b) {
@@ -309,7 +317,7 @@ class Entrega {
           for (int y : b) {
             tmp[0] = x;
             tmp[1] = y;
-            if (!isElementOf(tmp, dst)) dst[i++] = tmp.clone();
+            if (!isElementOf(tmp, dst, i)) dst[i++] = tmp.clone();
             else System.out.println(Arrays.toString(tmp));
           }
         }
@@ -347,6 +355,84 @@ class Entrega {
       return dot(union(a, b), minus(a, c)).length;
     }
 
+    static int[][] union(int[][] a, int[][] b) {
+      int[][] dst = new int[a.length + b.length][a[0].length];
+      int idx = 0;
+      for (int[] x : a) dst[idx++] = x.clone();
+      for (int[] x : b) if (!isElementOf(x, a)) dst[idx++] = x.clone();
+      if (dst.length == idx) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[][] tmp = new int[idx][dst[0].length];
+      for (int j = 0; j < idx; j++) tmp[j] = dst[j];
+      return tmp;
+    }
+
+    static int[][] reflexiveClosure(int[] a, int[][] rel) {
+      int[][] dst = new int[a.length][2];
+      for (int i = 0; i < a.length; i++) {
+        dst[i][0] = a[i];
+        dst[i][1] = a[i];
+      }
+      return union(dst, rel);
+    }
+
+    static int[][] symmetricClosure(int[][] rel) {
+      int[][] dst = new int[rel.length * 2][2];
+      int[] tmp = new int[2];
+      int idx = 0;
+      for (int[] x : rel) {
+        tmp[0] = x[1];
+        tmp[1] = x[0];
+        if (!isElementOf(x, dst, idx)) dst[idx++] = x.clone();
+        if (!isElementOf(tmp, dst, idx)) dst[idx++] = tmp.clone();
+      }
+      if (dst.length == idx) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[][] res = new int[idx][dst[0].length];
+      for (int j = 0; j < idx; j++) res[j] = dst[j];
+      return res;
+    }
+
+    static int[][] transitiveClosure(int[] a, int[][] rel) {
+      int[][] dst = new int[pow(a.length, 2)][2];
+      int[] tmp = new int[2];
+      int idx = 0;
+      for (int[] x : rel) dst[idx++] = x.clone();
+      for (int i = 0; i < idx; i++) {
+        for (int j = 0; j < idx; j++) {
+          if (dst[i][1] == dst[j][0]) {
+            tmp[0] = dst[i][0];
+            tmp[1] = dst[j][1];
+            if (!isElementOf(tmp, dst, idx)) dst[idx++] = tmp.clone();
+          }
+        }
+      }
+      if (dst.length == idx) return dst; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[][] res = new int[idx][dst[0].length];
+      for (int j = 0; j < idx; j++) res[j] = dst[j];
+      return res;
+    }
+
+    static String arrToStr(int[] a) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += String.valueOf(a[i]);
+        if (i < a.length - 1) s += ",";
+      }
+      s += "";
+      return s;
+    }
+
+    static String arrToStr(int[][] a) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += arrToStr(a[i]);
+        if (i < a.length - 1) s += " ";
+      }
+      return s;
+    }
+
     /*
      * La clausura d'equivalència d'una relació és el resultat de fer-hi la clausura reflexiva, simètrica i
      * transitiva simultàniament, i, per tant, sempre és una relació d'equivalència.
@@ -356,7 +442,7 @@ class Entrega {
      * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
      */
     static int exercici2(int[] a, int[][] rel) {
-      return -1; // TODO
+      return transitiveClosure(a, symmetricClosure(reflexiveClosure(a, rel))).length;
     }
 
     /*
