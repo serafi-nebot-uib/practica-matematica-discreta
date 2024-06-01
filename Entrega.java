@@ -414,21 +414,37 @@ class Entrega {
       return res;
     }
 
-    static String arrToStr(int[] a) {
+    static String arrToStr(int[] a, String sep) {
       String s = "";
       for (int i = 0; i < a.length; i++) {
         s += String.valueOf(a[i]);
-        if (i < a.length - 1) s += ",";
+        if (i < a.length - 1) s += sep;
       }
-      s += "";
+      return s;
+    }
+
+    static String arrToStr(int[] a) {
+      return arrToStr(a, ",");
+    }
+
+    static String arrToStr(int[][] a, String sep) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += arrToStr(a[i]);
+        if (i < a.length - 1) s += sep;
+      }
       return s;
     }
 
     static String arrToStr(int[][] a) {
+      return arrToStr(a, " ");
+    }
+
+    static String matToStr(int[][] a) {
       String s = "";
       for (int i = 0; i < a.length; i++) {
-        s += arrToStr(a[i]);
-        if (i < a.length - 1) s += " ";
+        s += arrToStr(a[i], " ");
+        if (i < a.length - 1) s += "\n";
       }
       return s;
     }
@@ -445,6 +461,62 @@ class Entrega {
       return transitiveClosure(a, symmetricClosure(reflexiveClosure(a, rel))).length;
     }
 
+    static boolean isReflexive(int[] a, int[][] rel) {
+      int[] tmp = new int[2];
+      for (int x : a) {
+        tmp[0] = x;
+        tmp[1] = x;
+        if (!isElementOf(tmp, rel)) return false;
+      }
+      return true;
+    }
+
+    static boolean isAntisymmetric(int[][] rel) {
+      for (int[] x : rel)
+        for (int[] y : rel)
+          if (x[0] == y[1] && x[1] == y[0])
+            if (x[0] != x[1]) return false;
+      return true;
+    }
+
+    static boolean isTransitive(int[][] rel) {
+      int[] tmp = new int[2];
+      for (int[] x : rel) {
+        for (int[] y : rel) {
+          if (x[1] == y[0]) {
+            tmp[0] = x[0];
+            tmp[1] = y[1];
+            if (!isElementOf(tmp, rel)) return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    static int indexOf(int s, int[] a) {
+      for (int i = 0; i < a.length; i++) if (a[i] == s) return i;
+      return -1;
+    }
+
+    static int[][] generateMatrix(int[] a, int[][] rel) {
+      int[][] m = new int[a.length][a.length];
+      for (int[] x : rel) m[indexOf(x[0], a)][indexOf(x[1], a)] = 1;
+      return m;
+    }
+
+    static int[][] matmul(int[][] a, int[][] b) {
+      if (a[0].length != b.length) return null;
+      int[][] r = new int[a.length][b[0].length];
+      for (int i = 0; i < r.length; i++) {
+        for (int j = 0; j < r[0].length; j++) {
+          for (int k = 0; k < r.length; k++) {
+            r[i][j] += a[i][k] * b[k][j];
+          }
+        }
+      }
+      return r;
+    }
+
     /*
      * Comprovau si la relació `rel` és un ordre total sobre `a`. Si ho és retornau el nombre
      * d'arestes del seu diagrama de Hasse. Sino, retornau -2.
@@ -452,9 +524,43 @@ class Entrega {
      * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
      */
     static int exercici3(int[] a, int[][] rel) {
-      return -1; // TODO
+      System.out.println("a: " + arrToStr(a));
+      System.out.println("rel: " + arrToStr(rel));
+      System.out.println("ref: " + isReflexive(a, rel));
+      System.out.println("asy: " + isAntisymmetric(rel));
+      System.out.println("tra: " + isTransitive(rel));
+      if (!isReflexive(a, rel) || !isAntisymmetric(rel) || !isTransitive(rel)) return -2;
+      int[][] r = generateMatrix(a, rel);
+      System.out.println();
+      System.out.println(matToStr(r));
+      System.out.println();
+      int[][] r2 = matmul(r, r);
+      System.out.println(matToStr(r2));
+      System.out.println();
+      System.out.println(matToStr(matmul(r2, r)));
+      System.out.println();
+      int cnt = 0;
+      int[] tmp = new int[2];
+      for (int i = 0; i < rel.length; i++) {
+        if (rel[i][0] == rel[i][1]) continue;
+        tmp[0] = rel[i][0];
+        tmp[1] = rel[i][1];
+        if (!isElementOf(tmp, rel, i)) cnt++;
+      }
+      System.out.println(cnt);
+      return cnt;
     }
 
+    static boolean isFunctionForDomain(int[] dom, int[] codom, int[][] rel) {
+      if (dom.length != rel.length) return false;
+      for (int i = 0; i < rel.length; i++) {
+        // check that both elements are in domain
+        if (!isElementOf(rel[i][0], dom) || !isElementOf(rel[i][1], codom)) return false;
+        // check that there aren't any repeated elements (a function cannot have a different image for the same element)
+        for (int j = 0; j < i; j++) if (rel[i][0] == rel[j][0]) return false;
+      }
+      return true;
+    }
 
     /*
      * Comprovau si les relacions `rel1` i `rel2` són els grafs de funcions amb domini i codomini
@@ -464,7 +570,13 @@ class Entrega {
      * lexicogràficament).
      */
     static int[][] exercici4(int[] a, int[][] rel1, int[][] rel2) {
-      return new int[][] {}; // TODO
+      if (!isFunctionForDomain(a, a, rel1) || !isFunctionForDomain(a, a, rel2)) return null;
+      int[][] r = new int[rel1.length][2];
+      for (int i = 0; i < r.length; i++) {
+        r[i][0] = rel1[i][0];
+        for (int[] y : rel2) if (rel1[i][1] == y[0]) r[i][1] = y[1];
+      }
+      return r;
     }
 
     /*
@@ -472,7 +584,17 @@ class Entrega {
      * el seu graf (el de l'inversa). Sino, retornau null.
      */
     static int[][] exercici5(int[] dom, int[] codom, Function<Integer, Integer> f) {
-      return new int[][] {}; // TODO
+      if (dom.length != codom.length) return null;
+      int[][] rel = new int[dom.length][2];
+      int[][] inv = new int[dom.length][2];
+      for (int i = 0; i < rel.length; i++) {
+        rel[i][0] = dom[i];
+        rel[i][1] = f.apply(dom[i]);
+        inv[i][1] = dom[i];
+        inv[i][0] = f.apply(dom[i]);
+      }
+      if (!isFunctionForDomain(dom, codom, rel)) return null;
+      return inv;
     }
 
     /*
