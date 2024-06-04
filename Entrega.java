@@ -40,7 +40,7 @@ import java.util.stream.Stream;
  *
  * Podeu fer aquesta entrega en grups de com a màxim 3 persones, i necessitareu com a minim Java 10.
  * Per entregar, posau a continuació els vostres noms i entregau únicament aquest fitxer.
- * - Nom 1:
+ * - Nom 1: Serafí Nebot Ginard
  * - Nom 2:
  * - Nom 3:
  *
@@ -264,6 +264,20 @@ class Entrega {
       return a > b ? a : b;
     }
 
+    static int min(int[] src) {
+      if (src == null || src.length == 0) return 0;
+      int r = Integer.MAX_VALUE;
+      for (int x : src) if (x < r) r = x;
+      return r;
+    }
+
+    static int max(int[] src) {
+      if (src == null || src.length == 0) return 0;
+      int r = Integer.MIN_VALUE;
+      for (int x : src) if (x > r) r = x;
+      return r;
+    }
+
     static boolean isElementOf(int e, int[] u, int size) {
       for (int i = 0; i < size; i++) if (e == u[i]) return true;
       return false;
@@ -344,15 +358,6 @@ class Entrega {
       int r = 1;
       for (int i = 0; i < exp; i++) r *= base;
       return r;
-    }
-
-    /*
-     * Calculau el nombre d'elements del conjunt de parts de (a u b) × (a \ c)
-     *
-     * Podeu soposar que `a`, `b` i `c` estan ordenats de menor a major.
-     */
-    static int exercici1(int[] a, int[] b, int[] c) {
-      return dot(union(a, b), minus(a, c)).length;
     }
 
     static int[][] union(int[][] a, int[][] b) {
@@ -449,18 +454,6 @@ class Entrega {
       return s;
     }
 
-    /*
-     * La clausura d'equivalència d'una relació és el resultat de fer-hi la clausura reflexiva, simètrica i
-     * transitiva simultàniament, i, per tant, sempre és una relació d'equivalència.
-     *
-     * Trobau el cardinal d'aquesta clausura.
-     *
-     * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
-     */
-    static int exercici2(int[] a, int[][] rel) {
-      return transitiveClosure(a, symmetricClosure(reflexiveClosure(a, rel))).length;
-    }
-
     static boolean isReflexive(int[] a, int[][] rel) {
       int[] tmp = new int[2];
       for (int x : a) {
@@ -493,62 +486,20 @@ class Entrega {
       return true;
     }
 
-    static int indexOf(int s, int[] a) {
-      for (int i = 0; i < a.length; i++) if (a[i] == s) return i;
-      return -1;
-    }
-
-    static int[][] generateMatrix(int[] a, int[][] rel) {
-      int[][] m = new int[a.length][a.length];
-      for (int[] x : rel) m[indexOf(x[0], a)][indexOf(x[1], a)] = 1;
-      return m;
-    }
-
-    static int[][] matmul(int[][] a, int[][] b) {
-      if (a[0].length != b.length) return null;
-      int[][] r = new int[a.length][b[0].length];
-      for (int i = 0; i < r.length; i++) {
-        for (int j = 0; j < r[0].length; j++) {
-          for (int k = 0; k < r.length; k++) {
-            r[i][j] += a[i][k] * b[k][j];
-          }
-        }
+    static int[] pathCount(int[][] rel, int org, int dst) {
+      if (org == dst) return new int[]{0};
+      int[] cnt = new int[rel.length];
+      int idx = 0;
+      for (int[] x : rel) {
+        if (x[0] != org) continue;
+        if (x[1] == dst) cnt[idx++] = 1;
+        else if (x[0] != x[1]) for (int y : pathCount(rel, x[1], dst)) cnt[idx++] = y + 1;
       }
-      return r;
-    }
-
-    /*
-     * Comprovau si la relació `rel` és un ordre total sobre `a`. Si ho és retornau el nombre
-     * d'arestes del seu diagrama de Hasse. Sino, retornau -2.
-     *
-     * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
-     */
-    static int exercici3(int[] a, int[][] rel) {
-      System.out.println("a: " + arrToStr(a));
-      System.out.println("rel: " + arrToStr(rel));
-      System.out.println("ref: " + isReflexive(a, rel));
-      System.out.println("asy: " + isAntisymmetric(rel));
-      System.out.println("tra: " + isTransitive(rel));
-      if (!isReflexive(a, rel) || !isAntisymmetric(rel) || !isTransitive(rel)) return -2;
-      int[][] r = generateMatrix(a, rel);
-      System.out.println();
-      System.out.println(matToStr(r));
-      System.out.println();
-      int[][] r2 = matmul(r, r);
-      System.out.println(matToStr(r2));
-      System.out.println();
-      System.out.println(matToStr(matmul(r2, r)));
-      System.out.println();
-      int cnt = 0;
-      int[] tmp = new int[2];
-      for (int i = 0; i < rel.length; i++) {
-        if (rel[i][0] == rel[i][1]) continue;
-        tmp[0] = rel[i][0];
-        tmp[1] = rel[i][1];
-        if (!isElementOf(tmp, rel, i)) cnt++;
-      }
-      System.out.println(cnt);
-      return cnt;
+      if (cnt.length == idx) return cnt; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[] res = new int[idx];
+      for (int j = 0; j < idx; j++) res[j] = cnt[j];
+      return res;
     }
 
     static boolean isFunctionForDomain(int[] dom, int[] codom, int[][] rel) {
@@ -560,6 +511,41 @@ class Entrega {
         for (int j = 0; j < i; j++) if (rel[i][0] == rel[j][0]) return false;
       }
       return true;
+    }
+
+    /*
+     * Calculau el nombre d'elements del conjunt de parts de (a u b) × (a \ c)
+     *
+     * Podeu soposar que `a`, `b` i `c` estan ordenats de menor a major.
+     */
+    static int exercici1(int[] a, int[] b, int[] c) {
+      return dot(union(a, b), minus(a, c)).length;
+    }
+
+    /*
+     * La clausura d'equivalència d'una relació és el resultat de fer-hi la clausura reflexiva, simètrica i
+     * transitiva simultàniament, i, per tant, sempre és una relació d'equivalència.
+     *
+     * Trobau el cardinal d'aquesta clausura.
+     *
+     * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
+     */
+    static int exercici2(int[] a, int[][] rel) {
+      return transitiveClosure(a, symmetricClosure(reflexiveClosure(a, rel))).length;
+    }
+
+    /*
+     * Comprovau si la relació `rel` és un ordre total sobre `a`. Si ho és retornau el nombre
+     * d'arestes del seu diagrama de Hasse. Sino, retornau -2.
+     *
+     * Podeu soposar que `a` i `rel` estan ordenats de menor a major (`rel` lexicogràficament).
+     */
+    static int exercici3(int[] a, int[][] rel) {
+      if (!isReflexive(a, rel) || !isAntisymmetric(rel) || !isTransitive(rel)) return -2;
+      int cnt = 0;
+      for (int i = 0; i < rel.length; i++) if (max(pathCount(rel, rel[i][0], rel[i][1])) == 1) cnt++;
+      System.out.println(cnt);
+      return cnt;
     }
 
     /*
@@ -638,8 +624,8 @@ class Entrega {
 
       final int[] int05 = { 0, 1, 2, 3, 4, 5 };
 
-//      assertThat(exercici3(int05, generateRel(int05, (x, y) -> x >= y)) == 5);
-//      assertThat(exercici3(int08, generateRel(int05, (x, y) -> x <= y)) == -2);
+      assertThat(exercici3(int05, generateRel(int05, (x, y) -> x >= y)) == 5);
+      assertThat(exercici3(int08, generateRel(int05, (x, y) -> x <= y)) == -2);
 
       // Exercici 4
       // Composició de grafs de funcions (null si no ho son)
@@ -739,6 +725,81 @@ class Entrega {
    * **NOTA: Els exercicis d'aquest tema conten doble**
    */
   static class Tema3 {
+    static String arrToStr(int[] a, String sep) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += String.valueOf(a[i]);
+        if (i < a.length - 1) s += sep;
+      }
+      return s;
+    }
+
+    static String arrToStr(int[] a) {
+      return arrToStr(a, ",");
+    }
+
+    static String arrToStr(int[][] a, String sep) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += arrToStr(a[i]);
+        if (i < a.length - 1) s += sep;
+      }
+      return s;
+    }
+
+    static String arrToStr(int[][] a) {
+      return arrToStr(a, " ");
+    }
+
+    static String matToStr(int[][] a) {
+      String s = "";
+      for (int i = 0; i < a.length; i++) {
+        s += arrToStr(a[i], " ");
+        if (i < a.length - 1) s += "\n";
+      }
+      return s;
+    }
+
+    static int indexOf(int s, int[] a) {
+      for (int i = 0; i < a.length; i++) if (a[i] == s) return i;
+      return -1;
+    }
+
+    static int[][] generateMatrix(int[] a, int[][] rel) {
+      int[][] m = new int[a.length][a.length];
+      for (int[] x : rel) m[indexOf(x[0], a)][indexOf(x[1], a)] = 1;
+      return m;
+    }
+
+    static int[][] matmul(int[][] a, int[][] b) {
+      if (a[0].length != b.length) return null;
+      int[][] r = new int[a.length][b[0].length];
+      for (int i = 0; i < r.length; i++) {
+        for (int j = 0; j < r[0].length; j++) {
+          for (int k = 0; k < r.length; k++) {
+            r[i][j] += a[i][k] * b[k][j];
+          }
+        }
+      }
+      return r;
+    }
+
+    static int[] pathCount(int[][] rel, int org, int dst) {
+      if (org == dst) return new int[]{0};
+      int[] cnt = new int[rel.length];
+      int idx = 0;
+      for (int[] x : rel) {
+        if (x[0] != org) continue;
+        if (x[1] == dst) cnt[idx++] = 1;
+        else if (x[0] != x[1]) for (int y : pathCount(rel, x[1], dst)) cnt[idx++] = y + 1;
+      }
+      if (cnt.length == idx) return cnt; // no need to copy, destination array is already to size
+      // resize array to actual length by making a copy
+      int[] res = new int[idx];
+      for (int j = 0; j < idx; j++) res[j] = cnt[j];
+      return res;
+    }
+
     /*
      * Determinau si el graf és connex. Podeu suposar que `g` no és dirigit.
      */
@@ -793,8 +854,8 @@ class Entrega {
 
       final int[][] C3D = { {1}, {2}, {0} };
 
-//      assertThat(exercici1(C3));
-//      assertThat(!exercici1(B2));
+      assertThat(exercici1(C3));
+      assertThat(!exercici1(B2));
 
       // Exercici 2
       // Moviments de cavall
@@ -803,12 +864,12 @@ class Entrega {
       // 0  1   2   3
       // 4  5   6   7
       // 8  9  10  11
-//      assertThat(exercici2(4, 3, 0, 11) == 3);
+      assertThat(exercici2(4, 3, 0, 11) == 3);
 
       // Tauler 3x2. Moviments de 0 a 2: (impossible).
       // 0 1 2
       // 3 4 5
-//      assertThat(exercici2(3, 2, 0, 2) == -1);
+      assertThat(exercici2(3, 2, 0, 2) == -1);
 
       // Exercici 3
       // u apareix abans que v al recorregut en preordre (o u=v)
@@ -828,8 +889,8 @@ class Entrega {
         {}
       };
 
-//      assertThat(exercici3(T1, 0, 5, 3));
-//      assertThat(!exercici3(T1, 0, 6, 2));
+      assertThat(exercici3(T1, 0, 5, 3));
+      assertThat(!exercici3(T1, 0, 6, 2));
 
       // Exercici 4
       // Altura de l'arbre donat el recorregut en preordre
@@ -840,8 +901,8 @@ class Entrega {
       final int[] P2 = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
       final int[] D2 = { 2, 0, 2, 0, 2, 0, 2, 0, 0 };
 
-//      assertThat(exercici4(P1, D1) == 3);
-//      assertThat(exercici4(P2, D2) == 4);
+      assertThat(exercici4(P1, D1) == 3);
+      assertThat(exercici4(P2, D2) == 4);
     }
   }
 
@@ -1010,9 +1071,8 @@ class Entrega {
   public static void main(String[] args) {
 //    Tema1.tests();
 //    Tema2.tests();
-//    Tema3.tests();
-    Tema4.tests();
-//    Tema4.exercici2(20, 15, 25);
+    Tema3.tests();
+//    Tema4.tests();
   }
 
   /// Si b és cert, no fa res. Si b és fals, llança una excepció (AssertionError).
