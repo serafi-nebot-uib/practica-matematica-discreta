@@ -748,7 +748,7 @@ class Entrega {
     }
 
     static String arrToStr(int[][] a) {
-      return arrToStr(a, " ");
+      return arrToStr(a, "\n");
     }
 
     static String matToStr(int[][] a) {
@@ -765,46 +765,83 @@ class Entrega {
       return -1;
     }
 
-    static int[][] generateMatrix(int[] a, int[][] rel) {
-      int[][] m = new int[a.length][a.length];
-      for (int[] x : rel) m[indexOf(x[0], a)][indexOf(x[1], a)] = 1;
-      return m;
-    }
-
     static int[][] matmul(int[][] a, int[][] b) {
       if (a[0].length != b.length) return null;
       int[][] r = new int[a.length][b[0].length];
-      for (int i = 0; i < r.length; i++) {
-        for (int j = 0; j < r[0].length; j++) {
-          for (int k = 0; k < r.length; k++) {
+      for (int i = 0; i < r.length; i++)
+        for (int j = 0; j < r[0].length; j++)
+          for (int k = 0; k < r.length; k++)
             r[i][j] += a[i][k] * b[k][j];
-          }
-        }
-      }
       return r;
     }
 
-    static int[] pathCount(int[][] rel, int org, int dst) {
-      if (org == dst) return new int[]{0};
-      int[] cnt = new int[rel.length];
-      int idx = 0;
+    static boolean pathExists(int[][] rel, int org, int dst, int rcnt) {
+      if (rcnt == 0) return false;
+      if (org == dst) return true;
       for (int[] x : rel) {
         if (x[0] != org) continue;
-        if (x[1] == dst) cnt[idx++] = 1;
-        else if (x[0] != x[1]) for (int y : pathCount(rel, x[1], dst)) cnt[idx++] = y + 1;
+        if (x[1] == dst) return true;
+        else if (x[0] != x[1] && pathExists(rel, x[1], dst, rcnt-1)) return true;
       }
-      if (cnt.length == idx) return cnt; // no need to copy, destination array is already to size
-      // resize array to actual length by making a copy
-      int[] res = new int[idx];
-      for (int j = 0; j < idx; j++) res[j] = cnt[j];
-      return res;
+      return false;
+    }
+
+    static boolean pathExists(int[][] rel, int org, int dst) {
+      return pathExists(rel, org, dst, rel.length);
+    }
+
+    static boolean isElementOf(int e, int[] u, int size) {
+      for (int i = 0; i < size; i++) if (e == u[i]) return true;
+      return false;
+    }
+
+    static int min(int[] src) {
+      if (src == null || src.length == 0) return 0;
+      int r = Integer.MAX_VALUE;
+      for (int x : src) if (x < r) r = x;
+      return r;
+    }
+
+    static int max(int[] src) {
+      if (src == null || src.length == 0) return 0;
+      int r = Integer.MIN_VALUE;
+      for (int x : src) if (x > r) r = x;
+      return r;
     }
 
     /*
      * Determinau si el graf és connex. Podeu suposar que `g` no és dirigit.
      */
     static boolean exercici1(int[][] g) {
-      return false; // TO DO
+      int[] u = new int[g.length * 2];
+      int idx = 0;
+      for (int[] x : g)
+        for (int y : x) if (!isElementOf(y, u, idx)) u[idx++] = y;
+      if (idx <= 1) return false;
+
+      int[][] rel = new int[g.length * g[0].length][2];
+      int reli = 0;
+      for (int i = 0; i < g.length; i++) {
+        for (int j = 0; j < g[i].length; j = j + 1, reli = reli + 1) {
+          rel[reli][0] = i;
+          rel[reli][1] = g[i][j];
+        }
+      }
+
+      for (int i = 0; i < idx; i++) {
+        for (int j = 0; j < idx; j++) {
+          if (u[i] == u[j]) continue;
+          if (!pathExists(rel, u[i], u[j])) return false;
+        }
+      }
+      return true;
+    }
+
+    static int[] pathCount(int[][] mat, int org, int dst) {
+      if (mat[org][dst] == 1) return new int[]{1};
+      int[] cnt = new int[mat.length];
+      int idx = 0;
+      return cnt;
     }
 
     /*
@@ -819,7 +856,21 @@ class Entrega {
      * Retornau el nombre mínim de moviments, o -1 si no és possible arribar-hi.
      */
     static int exercici2(int w, int h, int i, int j) {
-      return -1; // TO DO
+      System.out.printf("w: %d; h: %d\n", w, h);
+      int size = w * h;
+      int[][] hm = new int[][]{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
+      int[][] mat = new int[size][size];
+      for (int c = 0; c < size; c++) {
+        int y = c / w;
+        int x = c % w;
+        for (int[] pos : hm) {
+          int posx = x - pos[0];
+          int posy = y - pos[1];
+          if (0 <= posx && posx < w && 0 <= posy && posy < h) mat[c][posy * w + posx] = 1;
+        }
+      }
+      System.out.println("mat:\n" + arrToStr(mat));
+      return -1;
     }
 
     /*
