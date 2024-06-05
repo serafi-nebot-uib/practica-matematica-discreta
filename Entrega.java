@@ -775,73 +775,48 @@ class Entrega {
       return r;
     }
 
-    static boolean pathExists(int[][] rel, int org, int dst, int rcnt) {
-      if (rcnt == 0) return false;
-      if (org == dst) return true;
-      for (int[] x : rel) {
-        if (x[0] != org) continue;
-        if (x[1] == dst) return true;
-        else if (x[0] != x[1] && pathExists(rel, x[1], dst, rcnt-1)) return true;
+    /*
+     * BFS (Breadth-First-Search): https://en.wikipedia.org/wiki/Breadth-first_search
+     * returns a boolean array indicating which nodes the origin node is connected to
+     */
+    static boolean[] bfsSearch(int[][] g, int org) {
+      boolean[] explored = new boolean[g.length];
+      if (g.length == 0) return explored;
+      explored[org] = true;
+      int[] queue = new int[g.length];
+      queue[0] = org;
+      int qs = 0, qe = 1; // queue start index, queue end index
+      while (qs < qe) { // qs < qe means there's an unprocessed item in the queue
+        int node = queue[qs++]; // pop the next node from the queue
+        // enqueue current node childs that haven't been explored yet
+        for (int i = 0; i < g.length; i++) {
+          if (g[node][i] == 1 && !explored[i]) {
+            queue[qe++] = i;
+            explored[i] = true;
+          }
+        }
       }
-      return false;
+      return explored;
     }
 
-    static boolean pathExists(int[][] rel, int org, int dst) {
-      return pathExists(rel, org, dst, rel.length);
-    }
-
-    static boolean isElementOf(int e, int[] u, int size) {
-      for (int i = 0; i < size; i++) if (e == u[i]) return true;
-      return false;
-    }
-
-    static int min(int[] src) {
-      if (src == null || src.length == 0) return 0;
-      int r = Integer.MAX_VALUE;
-      for (int x : src) if (x < r) r = x;
-      return r;
-    }
-
-    static int max(int[] src) {
-      if (src == null || src.length == 0) return 0;
-      int r = Integer.MIN_VALUE;
-      for (int x : src) if (x > r) r = x;
-      return r;
+    static boolean isConnected(int[][] g) {
+      // if all nodes from bfsSearch have been visited from any node (i.e. 0) then the graph is connected
+      for (boolean x : bfsSearch(g, 0)) if (!x) return false;
+      return true;
     }
 
     /*
      * Determinau si el graf és connex. Podeu suposar que `g` no és dirigit.
      */
     static boolean exercici1(int[][] g) {
-      int[] u = new int[g.length * 2];
-      int idx = 0;
-      for (int[] x : g)
-        for (int y : x) if (!isElementOf(y, u, idx)) u[idx++] = y;
-      if (idx <= 1) return false;
-
-      int[][] rel = new int[g.length * g[0].length][2];
-      int reli = 0;
+      int[][] mat = new int[g.length][g.length];
       for (int i = 0; i < g.length; i++) {
-        for (int j = 0; j < g[i].length; j = j + 1, reli = reli + 1) {
-          rel[reli][0] = i;
-          rel[reli][1] = g[i][j];
+        for (int j : g[i]) {
+          mat[i][j] = 1;
+          mat[j][i] = 1;
         }
       }
-
-      for (int i = 0; i < idx; i++) {
-        for (int j = 0; j < idx; j++) {
-          if (u[i] == u[j]) continue;
-          if (!pathExists(rel, u[i], u[j])) return false;
-        }
-      }
-      return true;
-    }
-
-    static int[] pathCount(int[][] mat, int org, int dst) {
-      if (mat[org][dst] == 1) return new int[]{1};
-      int[] cnt = new int[mat.length];
-      int idx = 0;
-      return cnt;
+      return isConnected(mat);
     }
 
     /*
@@ -856,7 +831,6 @@ class Entrega {
      * Retornau el nombre mínim de moviments, o -1 si no és possible arribar-hi.
      */
     static int exercici2(int w, int h, int i, int j) {
-      System.out.printf("w: %d; h: %d\n", w, h);
       int size = w * h;
       int[][] hm = new int[][]{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
       int[][] mat = new int[size][size];
@@ -869,8 +843,11 @@ class Entrega {
           if (0 <= posx && posx < w && 0 <= posy && posy < h) mat[c][posy * w + posx] = 1;
         }
       }
-      System.out.println("mat:\n" + arrToStr(mat));
-      return -1;
+      if (!isConnected(mat)) return -1;
+      int k = 1;
+      int[][] tmp = mat.clone();
+      for (; tmp[i][j] == 0; k++) tmp = matmul(tmp, mat);
+      return k;
     }
 
     /*
