@@ -256,21 +256,6 @@ class Entrega {
    * f a x, és a dir, "f(x)" on x és d'A i el resultat f.apply(x) és de B, s'escriu f.apply(x).
    */
   static class Tema2 {
-    static int min(int a, int b) {
-      return a < b ? a : b;
-    }
-
-    static int max(int a, int b) {
-      return a > b ? a : b;
-    }
-
-    static int min(int[] src) {
-      if (src == null || src.length == 0) return 0;
-      int r = Integer.MAX_VALUE;
-      for (int x : src) if (x < r) r = x;
-      return r;
-    }
-
     static int max(int[] src) {
       if (src == null || src.length == 0) return 0;
       int r = Integer.MIN_VALUE;
@@ -311,17 +296,6 @@ class Entrega {
       return dst;
     }
 
-    static int[] intersection(int[] a, int[] b) {
-      int[] dst = new int[min(a.length, b.length)]; // create destination array with theoretical maximum number of elements
-      int i = 0; // destination array index
-      for (int x : a) if (isElementOf(x, b)) dst[i++] = x; // copy elements of a which also are in b
-      if (dst.length == i) return dst; // no need to copy, destination array is already to size
-      // resize array to actual length by making a copy
-      int[] tmp = new int[i];
-      for (int j = 0; j < i; j++) tmp[j] = dst[j];
-      return tmp;
-    }
-
     static int[][] dot(int[] a, int[] b) {
       int[][] dst = new int[a.length * b.length][2]; // create destination array with theoretical maximum number of elements
       int i = 0; // destination array index
@@ -332,7 +306,6 @@ class Entrega {
             tmp[0] = x;
             tmp[1] = y;
             if (!isElementOf(tmp, dst, i)) dst[i++] = tmp.clone();
-            else System.out.println(Arrays.toString(tmp));
           }
         }
       }
@@ -544,7 +517,6 @@ class Entrega {
       if (!isReflexive(a, rel) || !isAntisymmetric(rel) || !isTransitive(rel)) return -2;
       int cnt = 0;
       for (int i = 0; i < rel.length; i++) if (max(pathCount(rel, rel[i][0], rel[i][1])) == 1) cnt++;
-      System.out.println(cnt);
       return cnt;
     }
 
@@ -784,8 +756,8 @@ class Entrega {
       if (g.length == 0) return explored;
       explored[org] = true;
       int[] queue = new int[g.length];
-      queue[0] = org;
-      int qs = 0, qe = 1; // queue start index, queue end index
+      int qs = 0, qe = 0; // queue start index, queue end index
+      queue[qe++] = org;
       while (qs < qe) { // qs < qe means there's an unprocessed item in the queue
         int node = queue[qs++]; // pop the next node from the queue
         // enqueue current node childs that haven't been explored yet
@@ -832,18 +804,24 @@ class Entrega {
      */
     static int exercici2(int w, int h, int i, int j) {
       int size = w * h;
+      // horse movement positions relative to the current position ordered in the width and height direction
       int[][] hm = new int[][]{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
-      int[][] mat = new int[size][size];
+      int[][] mat = new int[size][size]; // adjacent matrix
       for (int c = 0; c < size; c++) {
+        // find current position's x and y coordinates
         int y = c / w;
         int x = c % w;
+        // find all the possible horse movements from the current position
         for (int[] pos : hm) {
           int posx = x - pos[0];
           int posy = y - pos[1];
+          // check if destination cell is inside the board
           if (0 <= posx && posx < w && 0 <= posy && posy < h) mat[c][posy * w + posx] = 1;
         }
       }
-      if (!isConnected(mat)) return -1;
+      // check if the destination cell is accessible from the origin cell
+      if (!bfsSearch(mat, i)[j]) return -1;
+      // multiply the adjacent matrix by itself to find the number of paths available from origin to destination
       int k = 1;
       int[][] tmp = mat.clone();
       for (; tmp[i][j] == 0; k++) tmp = matmul(tmp, mat);
@@ -851,11 +829,43 @@ class Entrega {
     }
 
     /*
+    * Depth-First-Search (https://en.wikipedia.org/wiki/Depth-first_search), adapted to return the order
+    * in which the nodes are explored
+    */
+    static int[] preorder(int[][] g, int root) {
+      int[] order = new int[g.length];
+      if (g.length == 0) return order;
+      int[] stack = new int[g.length];
+      int si = 0; // stack index
+      stack[si++] = root;
+      boolean[] explored = new boolean[g.length];
+      int oi = 0; // order index
+      while (si > 0) { // continue as long as there are items in the stack
+        int node = stack[--si]; // pop the last item in the stack
+        order[oi++] = node; // add the current to the order array
+        if (explored[node]) continue;
+        explored[node] = true;
+        // reverse order because it's a stack (LIFO)
+        for (int i = g.length - 1; i >= 0; i--) if (g[node][i] == 1 && !explored[i]) stack[si++] = i;
+      }
+      return order;
+    }
+
+    /*
      * Donat un arbre arrelat (graf dirigit `g`, amb arrel `r`), decidiu si el vèrtex `u` apareix
      * abans (o igual) que el vèrtex `v` al recorregut en preordre de l'arbre.
      */
     static boolean exercici3(int[][] g, int r, int u, int v) {
-      return false; // TO DO
+      // create adjacent matrix from g
+      int[][] mat = new int[g.length][g.length];
+      for (int i = 0; i < g.length; i++)
+        for (int j : g[i]) mat[i][j] = 1;
+      // get the preorder of the graph and check whether u or v comes first
+      for (int x : preorder(mat, r)) {
+        if (x == u) return true;
+        if (x == v) return false;
+      }
+      return false;
     }
 
     /*
@@ -1097,8 +1107,8 @@ class Entrega {
    * Podeu aprofitar el mètode `assertThat` per comprovar fàcilment que un valor sigui `true`.
    */
   public static void main(String[] args) {
-//    Tema1.tests();
-//    Tema2.tests();
+    Tema1.tests();
+    Tema2.tests();
     Tema3.tests();
 //    Tema4.tests();
   }
