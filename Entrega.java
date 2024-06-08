@@ -868,6 +868,10 @@ class Entrega {
       return false;
     }
 
+    static int max(int a, int b) {
+      return a > b ? a : b;
+    }
+
     /*
      * Donat un recorregut en preordre (per exemple, el primer vèrtex que hi apareix és `preord[0]`)
      * i el grau de cada vèrtex (per exemple, el vèrtex `i` té grau `d[i]`), trobau l'altura de
@@ -876,7 +880,25 @@ class Entrega {
      * L'altura d'un arbre arrelat és la major distància de l'arrel a les fulles.
      */
     static int exercici4(int[] preord, int[] d) {
-      return -1; // TO DO
+      System.out.println("preord: " + arrToStr(preord));
+      System.out.println("d: " + arrToStr(d));
+
+      if (preord.length == 0 || d[0] == 0) return 0;
+
+      int[] stack = new int[preord.length];
+      int si = -1, m = 1;
+      stack[++si] = d[0];
+      for (int i = 1; i < d.length; i++) {
+        System.out.println(arrToStr(stack));
+        if (d[i] == 0) --stack[si];
+        while (stack[si] == 0 && si > 0) --stack[--si];
+        if (d[i] > 0) {
+          stack[++si] = d[i];
+          m = max(m, si + 1);
+        }
+      }
+
+      return m;
     }
 
     /*
@@ -1052,7 +1074,25 @@ class Entrega {
      * té solució.
      */
     static boolean exercici3(int a, int b, int c, int d, int m, int n) {
-      return false;
+      int gcd1 = gcd(a, m);
+      int gcd2 = gcd(b, n);
+      if (c % gcd1 != 0 || d % gcd2 != 0) return false;
+      c /= gcd1;
+      m /= gcd1;
+      d /= gcd2;
+      n /= gcd2;
+      return (d - c) % gcd(m, n) == 0;
+    }
+
+    static int pow(int base, int exp) {
+      int r = 1;
+      for (int i = 0; i < exp; i++) r *= base;
+      return r;
+    }
+
+    static int mod(int a, int b) {
+      a %= b;
+      return a < 0 ? a + b : a;
     }
 
     /*
@@ -1066,7 +1106,7 @@ class Entrega {
      * qüestió de segons independentment de l'entrada.
      */
     static int exercici4(int n, int k, int p) {
-      return -1; // TO DO
+      return pow(n, k % (p - 1)) % p;
     }
 
     /*
@@ -1107,10 +1147,10 @@ class Entrega {
    * Podeu aprofitar el mètode `assertThat` per comprovar fàcilment que un valor sigui `true`.
    */
   public static void main(String[] args) {
-    Tema1.tests();
-    Tema2.tests();
-    Tema3.tests();
-//    Tema4.tests();
+//    Tema1.tests();
+//    Tema2.tests();
+//    Tema3.tests();
+    Tema4.tests();
   }
 
   /// Si b és cert, no fa res. Si b és fals, llança una excepció (AssertionError).
