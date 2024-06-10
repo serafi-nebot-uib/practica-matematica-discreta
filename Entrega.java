@@ -880,24 +880,18 @@ class Entrega {
      * L'altura d'un arbre arrelat és la major distància de l'arrel a les fulles.
      */
     static int exercici4(int[] preord, int[] d) {
-      System.out.println("preord: " + arrToStr(preord));
-      System.out.println("d: " + arrToStr(d));
-
       if (preord.length == 0 || d[0] == 0) return 0;
-
       int[] stack = new int[preord.length];
       int si = -1, m = 1;
       stack[++si] = d[0];
       for (int i = 1; i < d.length; i++) {
-        System.out.println(arrToStr(stack));
-        if (d[i] == 0) --stack[si];
+        if (d[preord[i]] == 0) --stack[si];
         while (stack[si] == 0 && si > 0) --stack[--si];
-        if (d[i] > 0) {
-          stack[++si] = d[i];
+        if (d[preord[i]] > 0) {
+          stack[++si] = d[preord[i]];
           m = max(m, si + 1);
         }
       }
-
       return m;
     }
 
@@ -1147,9 +1141,9 @@ class Entrega {
    * Podeu aprofitar el mètode `assertThat` per comprovar fàcilment que un valor sigui `true`.
    */
   public static void main(String[] args) {
-//    Tema1.tests();
-//    Tema2.tests();
-//    Tema3.tests();
+    Tema1.tests();
+    Tema2.tests();
+    Tema3.tests();
     Tema4.tests();
   }
 
